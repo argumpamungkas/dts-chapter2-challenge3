@@ -1,7 +1,7 @@
 package router
 
 import (
-	"chapter2-challenge-sesi-3/repo"
+	"chapter2-challenge-sesi-3/controllers"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,15 +9,15 @@ import (
 func StartServer() *gin.Engine {
 	router := gin.Default()
 
-	router.GET("/books", repo.GetAllBook)
+	router.GET("/books", controllers.GetAllBook)
 
-	router.GET("/books/:bookID", repo.GetBookById)
+	router.GET("/books/:bookID", controllers.GetBookByID)
 
-	router.POST("/books", repo.CreateBook)
+	router.POST("/books", controllers.CreateBook)
 
-	router.PUT("/books/:bookID", repo.UpdateBook)
+	router.PUT("/books/:bookID", controllers.UpdateBook)
 
-	router.DELETE("/books/:bookID", repo.DeleteBook)
+	router.DELETE("/books/:bookID", controllers.DeleteBook)
 
 	return router
 }

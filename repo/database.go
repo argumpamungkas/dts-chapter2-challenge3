@@ -5,10 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"net/http"
-	"strconv"
 
-	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
 
@@ -44,8 +41,7 @@ func ConnectDatabase() {
 
 }
 
-func GetAllBook(ctx *gin.Context) {
-	var allBooks []models.Book
+func GetAllBookDB(allBook []models.Book) (allBooks []models.Book, err error) {
 
 	sqlStatement := `SELECT * FROM books ORDER BY id`
 
@@ -70,131 +66,70 @@ func GetAllBook(ctx *gin.Context) {
 		allBooks = append(allBooks, books)
 	}
 
-	if allBooks == nil {
-		ctx.JSON(http.StatusOK, gin.H{
-			"data":        []string{},
-			"status_code": http.StatusOK,
-		})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"books": allBooks,
-	})
+	return
 
 }
 
-func GetBookById(ctx *gin.Context) {
-	bookID := ctx.Param("bookID")
-	var bookData models.Book
-
-	idBook, err := strconv.Atoi(bookID)
-	if err != nil {
-		log.Println("Invalid convert")
-		return
-	}
+func GetBookByIdDB(bookID int, book models.Book) (bookData models.Book, err error) {
 
 	sqlStatement := `SELECT * FROM books WHERE id = $1`
-	err = db.QueryRow(sqlStatement, idBook).Scan(&bookData.ID, &bookData.Title, &bookData.Author, &bookData.Description)
+	err = db.QueryRow(sqlStatement, bookID).Scan(&bookData.ID, &bookData.Title, &bookData.Author, &bookData.Description)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message":     fmt.Sprintf("book with id %v not found", idBook),
-			"status_code": http.StatusNotFound,
-		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"data":        bookData,
-		"status_code": http.StatusOK,
-	})
+	return
 }
 
-func CreateBook(ctx *gin.Context) {
-	var newBook models.Book
+func CreateBook(book models.Book) (newBook models.Book, err error) {
 	var lastID int
-
-	if err := ctx.ShouldBindJSON(&newBook); err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
 
 	getLastId := `SELECT id FROM books ORDER BY id DESC LIMIT 1`
 	err = db.QueryRow(getLastId).Scan(&lastID)
 	if err != nil {
-		newBook.ID = 1
+		book.ID = 1
 	}
 
-	newBook.ID = lastID + 1
+	book.ID = lastID + 1
 
 	sqlStatement := `INSERT INTO books (id, title, author, description) VALUES ($1, $2, $3, $4) Returning *`
-	_, err = db.Exec(sqlStatement, newBook.ID, newBook.Title, newBook.Author, newBook.Description)
+	_, err = db.Exec(sqlStatement, book.ID, book.Title, book.Author, book.Description)
 	if err != nil {
-		panic(err.Error())
+		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
-		"message": fmt.Sprintf("book %v is created", newBook.Title),
-	})
+	newBook = book
+
+	return
 }
 
-func UpdateBook(ctx *gin.Context) {
-	bookID := ctx.Param("bookID")
-	var updateBook models.Book
-
-	idBook, err := strconv.Atoi(bookID)
-	if err != nil {
-		log.Println("Invalid Convert")
-		return
-	}
-
-	if err = ctx.ShouldBindJSON(&updateBook); err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err)
-		return
-	}
+func UpdateBookDB(bookID int, updateBook models.Book) (book models.Book, err error) {
 
 	// GET ID
 	findId := `SELECT id FROM books WHERE id = $1`
-	err = db.QueryRow(findId, idBook).Scan(&idBook)
+	err = db.QueryRow(findId, bookID).Scan(&bookID)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message":     fmt.Sprintf("book with id %d not found", idBook),
-			"status_code": http.StatusNotFound,
-		})
 		return
 	}
 
 	sqlStatement := `UPDATE books SET title = $2, author = $3, description = $4 WHERE id = $1`
-	_, err = db.Exec(sqlStatement, idBook, updateBook.Title, updateBook.Author, updateBook.Description)
+	_, err = db.Exec(sqlStatement, bookID, updateBook.Title, updateBook.Author, updateBook.Description)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{
-			"message": fmt.Sprintf("book with id %v invalid updated", idBook),
-		})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("book with id %d successfully updated", idBook),
-	})
+	book = updateBook
+	book.ID = bookID
+
+	return
 
 }
 
-func DeleteBook(ctx *gin.Context) {
-	bookID := ctx.Param("bookID")
-
-	idBook, err := strconv.Atoi(bookID)
-	if err != nil {
-		log.Println("Invalid Convert")
-		return
-	}
+func DeleteBookDB(idBook int) (err error) {
 
 	findId := `SELECT id FROM books WHERE id = $1`
 	err = db.QueryRow(findId, idBook).Scan(&idBook)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{
-			"message":     fmt.Sprintf("book with id %d not found", idBook),
-			"status_code": http.StatusNotFound,
-		})
 		return
 	}
 
@@ -204,8 +139,6 @@ func DeleteBook(ctx *gin.Context) {
 		panic(err)
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("book with id %d successfully deleted", idBook),
-	})
+	return
 
 }
