@@ -30,8 +30,6 @@ func ConnectDatabase() {
 		panic(err)
 	}
 
-	// defer db.Close()
-
 	err = db.Ping()
 	if err != nil {
 		panic(err)
@@ -99,7 +97,6 @@ func CreateBook(book models.Book) (newBook models.Book, err error) {
 	}
 
 	newBook = book
-
 	return
 }
 
@@ -120,7 +117,6 @@ func UpdateBookDB(bookID int, updateBook models.Book) (book models.Book, err err
 
 	book = updateBook
 	book.ID = bookID
-
 	return
 
 }
